@@ -1,0 +1,51 @@
+function CarPP(image_Path,X_Cor,Y_Cor)
+filename='C:\Users\rafi1\final_project\Collecting-balls-robot-algorithm-main\Collecting-balls-robot-algorithm-main\Velocity_Table.xlsx';
+try
+    delete (filename);
+catch
+end
+X_Path = str2num(X_Cor);
+Y_Path = str2num(Y_Cor);
+path = [X_Path',Y_Path'];
+y=imread(image_Path);
+initiallocation=path(1,:);
+initialorientatin=pi;
+robotgoal=path(end,:);
+robotcurrentpose=[initiallocation initialorientatin]';
+distancetogoal=norm(initiallocation-robotgoal);
+radiusgoal=0.7;
+controller=controllerPurePursuit;
+controller.Waypoints=path;
+controller.DesiredLinearVelocity=4;
+controller.MaxAngularVelocity=8;
+controller.LookaheadDistance=0.789;
+robot=differentialDriveKinematics("TrackWidth",50,"VehicleInputs","VehicleSpeedHeadingRate");
+sempaltime=0.1;
+vizrate=rateControl(1/sempaltime);
+framesize=robot.TrackWidth/0.8;
+i = 1;
+while(distancetogoal>radiusgoal)
+    [v,omega]=controller(robotcurrentpose);
+    vel=derivative(robot,robotcurrentpose,[v,omega]);
+    v_1(i) = vel(1);
+    v_2(i) = vel(2);
+    av(i) = vel(3);
+    robotcurrentpose=robotcurrentpose+vel*sempaltime;
+    distancetogoal=norm(robotcurrentpose(1:2)-robotgoal(:));
+    hold off
+    imshow(y);
+    hold on
+    plot(path(:,1),path(:,2),"c--d",'LineWidth',2);
+    hold all
+    plotTrVec=[robotcurrentpose(1:2);0];
+    plotRot=axang2quat([0 0 1 robotcurrentpose(3)]);
+    plotTransforms(plotTrVec',plotRot,"FrameSize",framesize,"MeshFilePath","groundvehicle.stl","View","2D");
+    light;
+    i = i+1;
+    waitfor(vizrate);
+end
+Velocity_Table=table(v_1',v_2',av');
+path_name = 'C:\Users\rafi1\final_project\Collecting-balls-robot-algorithm-main\Collecting-balls-robot-algorithm-main'; % TO DO
+filename=[path_name '\Velocity_Table.xlsx'];
+writetable(Velocity_Table,filename);
+close all;
